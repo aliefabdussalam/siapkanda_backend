@@ -329,24 +329,32 @@ async def get_regions():
 async def health_check():
     return {"status": "ok"}
 
-origins = os.environ.get('CORS_ORIGINS', '*')
-if origins == '*':
-    allowed_origins = ["*"]
-    allow_credentials = False  # credentials tidak bisa dipakai dengan wildcard
+# Parse CORS origins dari env var
+_raw_origins = os.environ.get('CORS_ORIGINS', '')
+if not _raw_origins or _raw_origins.strip() == '*':
+    _allowed_origins = ["*"]
+    _allow_credentials = False
 else:
-    allowed_origins = [o.strip() for o in origins.split(',')]
-    allow_credentials = True
+    _allowed_origins = [o.strip() for o in _raw_origins.split(',') if o.strip()]
+    _allow_credentials = True
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=allow_credentials,
-    allow_methods=["*"],
+    allow_origins=_allowed_origins,
+    allow_credentials=_allow_credentials,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600,
 )
 
 # Include the router in the main app
 app.include_router(api_router)
+
+# Explicit OPTIONS handler sebagai fallback
+@app.options("/{rest_of_path:path}")
+async def preflight_handler(rest_of_path: str):
+    return {}
 
 # Configure logging
 logging.basicConfig(
