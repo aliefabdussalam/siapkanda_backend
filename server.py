@@ -346,6 +346,3 @@ logger = logging.getLogger(__name__)
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
-@api_router.get("/health")
-async def health_check():
-    return {"status": "ok"}
