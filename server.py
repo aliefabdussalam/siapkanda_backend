@@ -325,16 +325,28 @@ async def get_regions():
     regions = sorted(list(set(d.get('region') for d in directives if d.get('region'))))
     return {"regions": regions}
 
-# Include the router in the main app
-app.include_router(api_router)
+@api_router.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+origins = os.environ.get('CORS_ORIGINS', '*')
+if origins == '*':
+    allowed_origins = ["*"]
+    allow_credentials = False  # credentials tidak bisa dipakai dengan wildcard
+else:
+    allowed_origins = [o.strip() for o in origins.split(',')]
+    allow_credentials = True
 
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=allowed_origins,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include the router in the main app
+app.include_router(api_router)
 
 # Configure logging
 logging.basicConfig(
