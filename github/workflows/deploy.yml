@@ -1,0 +1,43 @@
+name: Deploy Backend ke Contabo VPS
+
+on:
+  push:
+    branches:
+      - main  # Ganti jika branch kamu berbeda
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup SSH key
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      # 3. Upload file backend ke VPS
+      - name: Upload backend files
+        run: |
+          rsync -avz --exclude='.git' \
+            --exclude='venv' \
+            --exclude='__pycache__' \
+            --exclude='.env' \
+            ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/root/siapkanda/backend/backend/
+
+      # 4. Install dependencies & restart service
+      - name: Install dependencies & restart
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd /root/siapkanda/backend
+            source venv/bin/activate
+            pip install -r backend/requirements.txt
+            sudo systemctl restart siapkanda
+            sudo systemctl status siapkanda --no-pager
+          EOF
