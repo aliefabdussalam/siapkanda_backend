@@ -537,6 +537,15 @@ async def add_attachment(
     
     # Read file and encode to base64
     content = await file.read()
+    
+    # Validate file size (max 25 MB)
+    MAX_FILE_SIZE = 25 * 1024 * 1024  # 25 MB in bytes
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Ukuran file melebihi batas maksimal 25 MB. Ukuran file: {len(content) / (1024 * 1024):.1f} MB"
+        )
+    
     encoded = base64.b64encode(content).decode('utf-8')
     
     attachment = {
